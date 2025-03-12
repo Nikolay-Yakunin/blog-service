@@ -1,3 +1,4 @@
+# TODO: Добавить нормальные переменные
 build:
 	go build -o main ./cmd
 
@@ -8,6 +9,7 @@ test:
 # Запуск docker-compose (с пересборкой образов)
 docker-up:
 	docker-compose up --build
+# TODO: Добавить стадию для lcov
 
 # Очистка сгенерированных файлов
 clean:
