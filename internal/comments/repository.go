@@ -1,54 +1,64 @@
 package comments
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
 
-// CommentRepo реализует интерфейс Repository для работы с БД
-type CommentRepo struct {
-	db *gorm.DB
+	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/database"
+)
+
+// CommentRepository реализует интерфейс Repository для работы с БД
+type CommentRepository struct {
+	database.BaseRepository
 }
 
-// NewCommentRepo создает новый экземпляр репозитория комментариев
-func NewCommentRepo(db *gorm.DB) Repository {
-	return &CommentRepo{db: db}
+// NewCommentRepository создает новый экземпляр репозитория комментариев
+func NewCommentRepository(db *gorm.DB) Repository {
+	return &CommentRepository{
+		BaseRepository: database.NewBaseRepository(db),
+	}
 }
 
 // Create сохраняет новый комментарий в базу данных
-func (r *CommentRepo) Create(comment *Comment) error {
-	return r.db.Create(comment).Error
+func (r *CommentRepository) Create(comment *Comment) error {
+	return r.DB.Create(comment).Error
 }
 
 // GetByID получает комментарий по ID вместе с вложенными ответами
 // Использует GORM Preload для загрузки связанных данных
-func (r *CommentRepo) GetByID(id uint) (*Comment, error) {
+func (r *CommentRepository) GetByID(id uint) (*Comment, error) {
 	var comment Comment
-	if err := r.db.Preload("Replies").First(&comment, id).Error; err != nil {
+	if err := r.DB.Preload("Replies").First(&comment, id).Error; err != nil {
 		return nil, err
 	}
 	return &comment, nil
 }
 
 // GetByPostID получает все корневые комментарии для поста с полной загрузкой вложенности
-func (r *CommentRepo) GetByPostID(postID uint) ([]Comment, error) {
+func (r *CommentRepository) GetByPostID(postID uint) ([]Comment, error) {
 	var comments []Comment
 
 	// Выбираем только корневые комментарии (parent_id IS NULL)
-	err := r.db.Where("post_id = ? AND parent_id IS NULL", postID).
+	err := r.DB.Where("post_id = ? AND parent_id IS NULL", postID).
 		Preload("Replies.Replies.Replies"). // Загружаем до 3 уровней вложенности
 		Order("created_at DESC").
 		Find(&comments).Error
 
-	return comments, err
+	if err != nil {
+		return nil, err // Added error check
+	}
+
+	return comments, nil
 }
 
 // Update обновляет существующий комментарий
-func (r *CommentRepo) Update(comment *Comment) error {
-	return r.db.Save(comment).Error
+func (r *CommentRepository) Update(comment *Comment) error {
+	return r.DB.Save(comment).Error
 }
 
 // Delete выполняет мягкое удаление комментария и всех его ответов
-func (r *CommentRepo) Delete(id uint) error {
+func (r *CommentRepository) Delete(id uint) error {
 	// Начинаем транзакцию
-	tx := r.db.Begin()
+	tx := r.DB.Begin()
 
 	// Удаляем основной комментарий
 	if err := tx.Model(&Comment{}).
@@ -68,7 +78,7 @@ func (r *CommentRepo) Delete(id uint) error {
 }
 
 // recursiveDeleteReplies рекурсивно удаляет все ответы на комментарий
-func (r *CommentRepo) recursiveDeleteReplies(tx *gorm.DB, parentID uint) error {
+func (r *CommentRepository) recursiveDeleteReplies(tx *gorm.DB, parentID uint) error {
 	// Находим все прямые ответы
 	var replies []Comment
 	if err := tx.Where("parent_id = ?", parentID).Find(&replies).Error; err != nil {
