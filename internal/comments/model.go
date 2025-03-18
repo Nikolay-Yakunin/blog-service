@@ -1,4 +1,4 @@
-package comment
+package comments
 
 import "time"
 
@@ -55,10 +55,10 @@ type Service interface {
 	CreateComment(comment *Comment) error
 	// GetComment получает комментарий по ID
 	GetComment(id uint) (*Comment, error)
-	// UpdateComment обновляет существующий комментарий
-	UpdateComment(comment *Comment) error
-	// DeleteComment удаляет комментарий
-	DeleteComment(id uint) error
+	// Обновляем сигнатуру метода, добавляя userID и userRole
+	UpdateComment(comment *Comment, userID uint, userRole string) error
+	// Обновляем сигнатуру метода, добавляя userID и userRole
+	DeleteComment(id uint, userID uint, userRole string) error
 	// GetPostComments получает все комментарии к посту
 	GetPostComments(postID uint) ([]Comment, error)
 }
