@@ -1,21 +1,15 @@
-# Используем официальный образ последней стабильной версии Go (обновлено до 1.24.1)
-FROM golang:1.24.1-alpine
+FROM golang:1.24.1-alpine AS builder
 
-# Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /app
-
-# Копируем файлы зависимостей и скачиваем их
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Копируем исходный код приложения
 COPY . .
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/app
 
-# Сборка приложения
-RUN go build -o main ./cmd
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/main .
+COPY --from=builder /app/config ./config
 
-# Открываем порт приложения
 EXPOSE 8080
-
-# Запуск приложения
 CMD ["./main"]
