@@ -1,3 +1,4 @@
+// Package users предоставляет функционал для работы с пользователями системы
 package users
 
 import "time"
@@ -29,29 +30,29 @@ const (
     ProviderFacebook Provider = "facebook"  // Возможно добавлю в будущем
 )
 
-// User представляет собой модель пользователя
+// User представляет собой модель пользователя системы
 type User struct {
     ID        uint      `json:"id" gorm:"primaryKey"`
-    Username  string    `json:"username" gorm:"size:255;not null;unique"`
-    Email     string    `json:"email" gorm:"size:255;not null;unique"`
+    Username  string    `json:"username" gorm:"size:255;not null;unique"` // Уникальное имя пользователя
+    Email     string    `json:"email" gorm:"size:255;not null;unique"`    // Уникальный email пользователя
     
-    // OAuth данные
-    Provider  Provider  `json:"provider" gorm:"size:20;not null"`
-    ProviderID string  `json:"provider_id" gorm:"size:255;not null"`
+    // OAuth данные для аутентификации
+    Provider   Provider `json:"provider" gorm:"size:20;not null"`    // Тип провайдера OAuth
+    ProviderID string   `json:"provider_id" gorm:"size:255;not null"` // ID пользователя у провайдера
     
-    // Профиль
-    Avatar    string    `json:"avatar" gorm:"size:255"`
-    Bio       string    `json:"bio" gorm:"type:text"`
+    // Данные профиля
+    Avatar    string    `json:"avatar" gorm:"size:255"` // URL аватара пользователя
+    Bio       string    `json:"bio" gorm:"type:text"`   // Описание профиля
     
-    // Уровень доступа
-    Role      Role      `json:"role" gorm:"type:varchar(20);default:'user'"`
-    IsActive  bool      `json:"is_active" gorm:"default:true"`
+    // Системные настройки
+    Role      Role      `json:"role" gorm:"type:varchar(20);default:'user'"` // Роль пользователя
+    IsActive  bool      `json:"is_active" gorm:"default:true"`               // Статус активности
     
-    // Метаданные
-    LastLogin *time.Time `json:"last_login,omitempty"`
-    CreatedAt time.Time  `json:"created_at"`
-    UpdatedAt time.Time  `json:"updated_at"`
-    DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index"`
+    // Временные метки
+    LastLogin  *time.Time `json:"last_login,omitempty"`                    // Время последнего входа
+    CreatedAt  time.Time  `json:"created_at"`                             // Время создания записи
+    UpdatedAt  time.Time  `json:"updated_at"`                             // Время последнего обновления
+    DeletedAt  *time.Time `json:"deleted_at,omitempty" gorm:"index"`      // Время удаления (soft delete)
 }
 
 // Repository описывает методы для работы с хранилищем пользователей
