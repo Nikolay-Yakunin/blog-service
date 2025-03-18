@@ -3,7 +3,7 @@ package post
 import (
     "time"
 
-    "gitlab.com/Nikolay-Yakunin/blog-service/internal/comment"
+    "gitlab.com/Nikolay-Yakunin/blog-service/internal/comments"
 )
 
 // Status определяет текущее состояние поста
