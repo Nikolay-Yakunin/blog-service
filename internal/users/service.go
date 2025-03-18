@@ -5,6 +5,8 @@ package users
 import (
 	"errors"
 	"time"
+	"strings"
+	"fmt"
 )
 
 // userService реализует интерфейс Service для управления пользователями
@@ -21,6 +23,23 @@ type userService struct {
 //	service := users.NewUserService(repo)
 func NewUserService(repo Repository) Service {
 	return &userService{repo: repo}
+}
+
+// ValidateEmail проверяет корректность email адреса
+func (s *userService) validateEmail(email string) error {
+    // Простая проверка на наличие @ и домена
+    if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
+        return errors.New("invalid email format")
+    }
+    // Проверка на уникальность
+    existing, err := s.repo.GetByEmail(email)
+    if err != nil {
+        return err
+    }
+    if existing != nil {
+        return errors.New("email already exists")
+    }
+    return nil
 }
 
 // Register регистрирует нового пользователя на основе данных OAuth провайдера
@@ -64,6 +83,11 @@ func (s *userService) Register(provider Provider, providerData map[string]interf
 	if !ok {
 		avatarURL = "" // Используем пустую строку, если аватар отсутствует
 	}
+
+	// Добавляем валидацию email
+    if err := s.validateEmail(email); err != nil {
+        return nil, fmt.Errorf("email validation failed: %w", err)
+    }
 
 	// Ищем существующего пользователя
 	existingUser, err := s.repo.GetByProviderID(provider, providerID)
@@ -156,4 +180,14 @@ func (s *userService) UpdateLastLogin(id uint) error {
 	now := time.Now()
 	user.LastLogin = &now
 	return s.repo.Update(user)
+}
+
+// GetUsersByRole возвращает список пользователей с указанной ролью
+func (s *userService) GetUsersByRole(role Role) ([]User, error) {
+    return s.repo.FindByRole(role)
+}
+
+// GetActiveUsers возвращает список активных пользователей
+func (s *userService) GetActiveUsers() ([]User, error) {
+    return s.repo.FindActive()
 }

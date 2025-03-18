@@ -82,6 +82,36 @@ func (r *UserRepository) GetByProviderID(provider Provider, providerID string) (
 	return &user, nil
 }
 
+// GetByUsername возвращает пользователя по имени пользователя
+func (r *UserRepository) GetByUsername(username string) (*User, error) {
+    var user User
+    if err := r.DB.Where("username = ?", username).First(&user).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, nil
+        }
+        return nil, err
+    }
+    return &user, nil
+}
+
+// FindByRole возвращает список пользователей с указанной ролью
+func (r *UserRepository) FindByRole(role Role) ([]User, error) {
+    var users []User
+    if err := r.DB.Where("role = ?", role).Find(&users).Error; err != nil {
+        return nil, err
+    }
+    return users, nil
+}
+
+// FindActive возвращает список активных пользователей
+func (r *UserRepository) FindActive() ([]User, error) {
+    var users []User
+    if err := r.DB.Where("is_active = ?", true).Find(&users).Error; err != nil {
+        return nil, err
+    }
+    return users, nil
+}
+
 func (r *UserRepository) Update(user *User) error {
 	return r.DB.Save(user).Error
 }
