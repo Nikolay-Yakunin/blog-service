@@ -1,2 +1,5 @@
 main
 coverage.out
+.env
+*.env
+.env.*
