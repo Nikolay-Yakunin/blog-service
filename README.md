@@ -88,6 +88,31 @@ make
     └── kubernetes/          # Возможно
 ```
 
+## OAuth Configuration
+
+Для работы OAuth аутентификации необходимо создать приложения у провайдеров и настроить переменные окружения:
+
+### GitHub OAuth
+```bash
+OAUTH_GITHUB_CLIENT_ID=your_client_id
+OAUTH_GITHUB_CLIENT_SECRET=your_client_secret
+OAUTH_GITHUB_REDIRECT_URL=http://localhost:8080/auth/github/callback
+```
+
+### Google OAuth
+```bash
+OAUTH_GOOGLE_CLIENT_ID=your_client_id
+OAUTH_GOOGLE_CLIENT_SECRET=your_client_secret
+OAUTH_GOOGLE_REDIRECT_URL=http://localhost:8080/auth/google/callback
+```
+
+### VK OAuth
+```bash
+OAUTH_VK_CLIENT_ID=your_client_id
+OAUTH_VK_CLIENT_SECRET=your_client_secret
+OAUTH_VK_REDIRECT_URL=http://localhost:8080/auth/vk/callback
+```
+
 ## Компоненты инфраструктуры
 
 - **PostgreSQL**: Основное хранилище данных
