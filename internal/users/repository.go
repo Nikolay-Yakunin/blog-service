@@ -1,3 +1,4 @@
+// Package users предоставляет реализацию хранилища пользователей в PostgreSQL
 package users
 
 import (
@@ -7,11 +8,18 @@ import (
 	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/database"
 )
 
-// UserRepository реализует интерфейс Repository для работы с БД
+// UserRepository реализует интерфейс Repository для работы с PostgreSQL
+// Предоставляет CRUD операции для сущности User
 type UserRepository struct {
 	database.BaseRepository
 }
 
+// NewUserRepository создает новый экземпляр репозитория пользователей
+//
+// Пример использования:
+//
+//	db := database.GetConnection()
+//	repo := users.NewUserRepository(db)
 func NewUserRepository(db *gorm.DB) Repository {
 	return &UserRepository{
 		BaseRepository: database.NewBaseRepository(db),
@@ -19,6 +27,11 @@ func NewUserRepository(db *gorm.DB) Repository {
 }
 
 // Create создает нового пользователя в базе данных
+//
+// Возвращает error:
+//   - если user == nil
+//   - если произошла ошибка при создании записи в БД
+//   - если нарушены ограничения уникальности
 func (r *UserRepository) Create(user *User) error {
 	if user == nil {
 		return errors.New("user cannot be nil")
@@ -27,7 +40,11 @@ func (r *UserRepository) Create(user *User) error {
 }
 
 // GetByID возвращает пользователя по его ID
-// Возвращает nil, nil если пользователь не найден
+//
+// Возвращает:
+//   - (nil, nil) если пользователь не найден
+//   - (nil, error) если произошла ошибка БД
+//   - (*User, nil) если пользователь успешно найден
 func (r *UserRepository) GetByID(id uint) (*User, error) {
 	if id == 0 {
 		return nil, errors.New("invalid user ID")

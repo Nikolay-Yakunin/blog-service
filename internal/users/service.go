@@ -1,3 +1,5 @@
+// Package users предоставляет сервис для управления пользователями системы.
+// Включает в себя функционал регистрации через OAuth, управления ролями и статусами пользователей.
 package users
 
 import (
@@ -5,15 +7,42 @@ import (
 	"time"
 )
 
+// userService реализует интерфейс Service для управления пользователями
+// Предоставляет методы для регистрации, обновления и управления статусами пользователей
 type userService struct {
 	repo Repository
 }
 
+// NewUserService создает новый экземпляр сервиса пользователей
+//
+// Пример использования:
+//
+//	repo := users.NewUserRepository(db)
+//	service := users.NewUserService(repo)
 func NewUserService(repo Repository) Service {
 	return &userService{repo: repo}
 }
 
-// Register регистрирует или возвращает существующего пользователя на основе OAuth данных
+// Register регистрирует нового пользователя на основе данных OAuth провайдера
+// Если пользователь уже существует, возвращает существующего пользователя
+//
+// Параметры:
+//   - provider: тип OAuth провайдера (github, google, etc.)
+//   - providerData: карта с данными пользователя от провайдера
+//
+// Возвращает:
+//   - *User: созданный или существующий пользователь
+//   - error: ошибка при создании/получении пользователя
+//
+// Пример:
+//
+//	data := map[string]interface{}{
+//	    "id": "12345",
+//	    "login": "username",
+//	    "email": "user@example.com",
+//	    "avatar_url": "https://example.com/avatar.jpg",
+//	}
+//	user, err := service.Register(users.ProviderGithub, data)
 func (s *userService) Register(provider Provider, providerData map[string]interface{}) (*User, error) {
 	// Проверяем наличие необходимых полей в providerData
 	providerID, ok := providerData["id"].(string)
@@ -66,14 +95,23 @@ func (s *userService) Register(provider Provider, providerData map[string]interf
 	return user, nil
 }
 
+// GetUser возвращает пользователя по его ID
+//
+// Возвращает nil, error если пользователь не найден
 func (s *userService) GetUser(id uint) (*User, error) {
 	return s.repo.GetByID(id)
 }
 
+// UpdateUser обновляет данные существующего пользователя
+//
+// Возвращает error если пользователь не найден или произошла ошибка обновления
 func (s *userService) UpdateUser(user *User) error {
 	return s.repo.Update(user)
 }
 
+// VerifyUser изменяет роль пользователя на RoleVerified
+//
+// Возвращает error если пользователь не найден или произошла ошибка обновления
 func (s *userService) VerifyUser(id uint) error {
 	user, err := s.repo.GetByID(id)
 	if err != nil {
@@ -87,6 +125,9 @@ func (s *userService) VerifyUser(id uint) error {
 	return s.repo.Update(user)
 }
 
+// DeactivateUser отключает пользователя, устанавливая IsActive в false
+//
+// Возвращает error если пользователь не найден или произошла ошибка обновления
 func (s *userService) DeactivateUser(id uint) error {
 	user, err := s.repo.GetByID(id)
 	if err != nil {
@@ -100,6 +141,9 @@ func (s *userService) DeactivateUser(id uint) error {
 	return s.repo.Update(user)
 }
 
+// UpdateLastLogin обновляет время последнего входа пользователя
+//
+// Возвращает error если пользователь не найден или произошла ошибка обновления
 func (s *userService) UpdateLastLogin(id uint) error {
 	user, err := s.repo.GetByID(id)
 	if err != nil {

@@ -1,9 +1,17 @@
-// Package users предоставляет функционал для работы с пользователями системы
+// Package users определяет модели данных и интерфейсы для работы с пользователями системы
+//
+// Основные компоненты:
+//   - User: модель пользователя
+//   - Role: уровни доступа пользователей
+//   - Provider: поддерживаемые OAuth провайдеры
+//   - Repository: интерфейс хранилища
+//   - Service: интерфейс бизнес-логики
 package users
 
 import "time"
 
-// Role определяет уровень доступа пользователя
+// Role определяет уровень доступа пользователя в системе
+// Роли образуют иерархию от гостя до администратора
 type Role string
 
 const (
@@ -19,7 +27,8 @@ const (
     RoleAdmin Role = "admin"
 )
 
-// Provider определяет тип OAuth провайдера
+// Provider определяет поддерживаемые системой OAuth провайдеры
+// Каждый провайдер требует соответствующей настройки в конфигурации приложения
 type Provider string
 
 const (
@@ -30,7 +39,20 @@ const (
     ProviderFacebook Provider = "facebook"  // Возможно добавлю в будущем
 )
 
-// User представляет собой модель пользователя системы
+// User представляет собой основную модель пользователя системы
+//
+// Валидация полей:
+//   - Username: обязательное, уникальное
+//   - Email: обязательное, уникальное, валидный email
+//   - Provider: обязательное, одно из определенных значений
+//   - ProviderID: обязательное, уникальное в рамках провайдера
+//
+// Индексы:
+//   - PRIMARY KEY (id)
+//   - UNIQUE INDEX (username)
+//   - UNIQUE INDEX (email)
+//   - UNIQUE INDEX (provider, provider_id)
+//   - INDEX (deleted_at)
 type User struct {
     ID        uint      `json:"id" gorm:"primaryKey"`
     Username  string    `json:"username" gorm:"size:255;not null;unique"` // Уникальное имя пользователя
@@ -56,6 +78,7 @@ type User struct {
 }
 
 // Repository описывает методы для работы с хранилищем пользователей
+// Реализации должны обеспечивать потокобезопасность операций
 type Repository interface {
     // Create создает нового пользователя
     Create(user *User) error
@@ -72,6 +95,7 @@ type Repository interface {
 }
 
 // Service описывает бизнес-логику работы с пользователями
+// Реализации должны производить валидацию входных данных
 type Service interface {
     // Register регистрирует нового пользователя через OAuth
     Register(provider Provider, providerData map[string]interface{}) (*User, error)
