@@ -1,7 +1,6 @@
 package comments
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -9,12 +8,6 @@ import (
 type CommentSvc struct {
 	repo Repository
 }
-
-var (
-	ErrCommentNotFound = errors.New("comment not found")
-	ErrUnauthorized    = errors.New("unauthorized to modify this comment")
-	ErrEmptyContent    = errors.New("comment content cannot be empty")
-)
 
 // NewCommentService создает новый экземпляр сервиса комментариев
 func NewCommentService(repo Repository) Service {
