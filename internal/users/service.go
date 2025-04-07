@@ -1,4 +1,4 @@
-// Package users предоставляет сервис для управления пользователями системы.
+// Package users предоставляет сервис для управления пользователями.
 // Включает в себя функционал регистрации через OAuth, управления ролями и статусами пользователей.
 package users
 
@@ -9,24 +9,20 @@ import (
 	"fmt"
 )
 
-// userService реализует интерфейс Service для управления пользователями
-// Предоставляет методы для регистрации, обновления и управления статусами пользователей
-type userService struct {
-	repo Repository
+// UserService реализует бизнес-логику работы с пользователями
+type UserService struct {
+    repo Repository
 }
 
 // NewUserService создает новый экземпляр сервиса пользователей
-//
-// Пример использования:
-//
-//	repo := users.NewUserRepository(db)
-//	service := users.NewUserService(repo)
-func NewUserService(repo Repository) Service {
-	return &userService{repo: repo}
+func NewUserService(repo Repository) *UserService {
+    return &UserService{
+        repo: repo,
+    }
 }
 
 // ValidateEmail проверяет корректность email адреса
-func (s *userService) validateEmail(email string) error {
+func (s *UserService) validateEmail(email string) error {
     // Простая проверка на наличие @ и домена
     if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
         return errors.New("invalid email format")
@@ -62,7 +58,7 @@ func (s *userService) validateEmail(email string) error {
 //	    "avatar_url": "https://example.com/avatar.jpg",
 //	}
 //	user, err := service.Register(users.ProviderGithub, data)
-func (s *userService) Register(provider Provider, providerData map[string]interface{}) (*User, error) {
+func (s *UserService) Register(provider Provider, providerData map[string]interface{}) (*User, error) {
 	// Проверяем наличие необходимых полей в providerData
 	providerID, ok := providerData["id"].(string)
 	if !ok {
@@ -122,21 +118,21 @@ func (s *userService) Register(provider Provider, providerData map[string]interf
 // GetUser возвращает пользователя по его ID
 //
 // Возвращает nil, error если пользователь не найден
-func (s *userService) GetUser(id uint) (*User, error) {
+func (s *UserService) GetUser(id uint) (*User, error) {
 	return s.repo.GetByID(id)
 }
 
 // UpdateUser обновляет данные существующего пользователя
 //
 // Возвращает error если пользователь не найден или произошла ошибка обновления
-func (s *userService) UpdateUser(user *User) error {
+func (s *UserService) UpdateUser(user *User) error {
 	return s.repo.Update(user)
 }
 
 // VerifyUser изменяет роль пользователя на RoleVerified
 //
 // Возвращает error если пользователь не найден или произошла ошибка обновления
-func (s *userService) VerifyUser(id uint) error {
+func (s *UserService) VerifyUser(id uint) error {
 	user, err := s.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -152,7 +148,7 @@ func (s *userService) VerifyUser(id uint) error {
 // DeactivateUser отключает пользователя, устанавливая IsActive в false
 //
 // Возвращает error если пользователь не найден или произошла ошибка обновления
-func (s *userService) DeactivateUser(id uint) error {
+func (s *UserService) DeactivateUser(id uint) error {
 	user, err := s.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -168,7 +164,7 @@ func (s *userService) DeactivateUser(id uint) error {
 // UpdateLastLogin обновляет время последнего входа пользователя
 //
 // Возвращает error если пользователь не найден или произошла ошибка обновления
-func (s *userService) UpdateLastLogin(id uint) error {
+func (s *UserService) UpdateLastLogin(id uint) error {
 	user, err := s.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -183,11 +179,11 @@ func (s *userService) UpdateLastLogin(id uint) error {
 }
 
 // GetUsersByRole возвращает список пользователей с указанной ролью
-func (s *userService) GetUsersByRole(role Role) ([]User, error) {
+func (s *UserService) GetUsersByRole(role Role) ([]User, error) {
     return s.repo.FindByRole(role)
 }
 
 // GetActiveUsers возвращает список активных пользователей
-func (s *userService) GetActiveUsers() ([]User, error) {
+func (s *UserService) GetActiveUsers() ([]User, error) {
     return s.repo.FindActive()
 }

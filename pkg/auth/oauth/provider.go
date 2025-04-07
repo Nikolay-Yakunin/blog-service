@@ -97,4 +97,3 @@ func (p *Provider) fetchGithubUser(client *http.Client) (*UserData, error) {
 	}, nil
 }
 
-// Similar implementations for Google and VK...

@@ -7,7 +7,8 @@ import (
 
 // Claims определяет данные, хранимые в JWT токене
 type Claims struct {
-    jwt.RegisteredClaims
-    UserID uint        `json:"user_id"`
-    Role   users.Role  `json:"role"`
+	jwt.RegisteredClaims
+	ID     string     `json:"jti"` 
+	UserID uint       `json:"user_id"`
+	Role   users.Role `json:"role"`
 }

@@ -10,6 +10,7 @@ import (
 	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/middleware"
 )
 
+
 // Handler обрабатывает HTTP-запросы для работы с комментариями
 // Содержит сервисный слой для бизнес-логики и конфигурацию приложения
 type Handler struct {
@@ -60,7 +61,11 @@ func (h *Handler) GetPostComments(c *gin.Context) {
 	// 1. Извлекаем и валидируем ID поста из URL
 	postID, err := strconv.ParseUint(c.Param("postId"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post ID"})
+		c.JSON(http.StatusBadRequest, NewErrorResponse(
+			http.StatusBadRequest,
+			"Invalid post ID",
+			err.Error(),
+		))
 		return
 	}
 
@@ -68,7 +73,11 @@ func (h *Handler) GetPostComments(c *gin.Context) {
     // Комментарии будут отсортированы по времени создания (сначала новые)
 	comments, err := h.service.GetPostComments(uint(postID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, NewErrorResponse(
+			http.StatusInternalServerError,
+			"Failed to fetch comments",
+			err.Error(),
+		))
 		return
 	}
 
@@ -92,7 +101,11 @@ func (h *Handler) CreateComment(c *gin.Context) {
 	// 1. Парсим данные комментария из тела запроса
 	var comment Comment
 	if err := c.BindJSON(&comment); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, NewErrorResponse(
+			http.StatusBadRequest,
+			"Invalid comment data",
+			err.Error(),
+		))
 		return
 	}
 
@@ -105,13 +118,21 @@ func (h *Handler) CreateComment(c *gin.Context) {
 	// 3. Устанавливаем ID поста из URL параметра
 	postID, err := strconv.ParseUint(c.Param("postId"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post ID"})
+		c.JSON(http.StatusBadRequest, NewErrorResponse(
+			http.StatusBadRequest,
+			"Invalid post ID",
+			err.Error(),
+		))
 		return
 	}
 	comment.PostID = uint(postID)
 
 	if err := h.service.CreateComment(&comment); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, NewErrorResponse(
+			http.StatusInternalServerError,
+			"Failed to create comment",
+			err.Error(),
+		))
 		return
 	}
 
@@ -135,14 +156,22 @@ func (h *Handler) UpdateComment(c *gin.Context) {
 	// 1. Парсим обновленные данные комментария
 	var comment Comment
 	if err := c.BindJSON(&comment); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, NewErrorResponse(
+			http.StatusBadRequest,
+			"Invalid comment data",
+			err.Error(),
+		))
 		return
 	}
 
 	// 2. Извлекаем и валидируем ID комментария из URL
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid comment ID"})
+		c.JSON(http.StatusBadRequest, NewErrorResponse(
+			http.StatusBadRequest,
+			"Invalid comment ID",
+			err.Error(),
+		))
 		return
 	}
 	comment.ID = uint(id)
@@ -156,10 +185,17 @@ func (h *Handler) UpdateComment(c *gin.Context) {
 	if err := h.service.UpdateComment(&comment, userID, userRole); err != nil {
 		// 5. Определяем правильный статус ошибки
 		status := http.StatusInternalServerError
+		message := "Failed to update comment"
+		
 		if err == ErrUnauthorized {
 			status = http.StatusForbidden // 403 для ошибок доступа
+			message = "Unauthorized to modify this comment"
 		}
-		c.JSON(status, gin.H{"error": err.Error()})
+		c.JSON(status, NewErrorResponse(
+			status,
+			message,
+			err.Error(),
+		))
 		return
 	}
 
@@ -168,7 +204,11 @@ func (h *Handler) UpdateComment(c *gin.Context) {
 	// Получаем обновленный комментарий из базы
 	updatedComment, err := h.service.GetComment(comment.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch updated comment"})
+		c.JSON(http.StatusInternalServerError, NewErrorResponse(
+			http.StatusInternalServerError,
+			"Failed to fetch updated comment",
+			err.Error(),
+		))
 		return
 	}
 
@@ -190,7 +230,11 @@ func (h *Handler) DeleteComment(c *gin.Context) {
 	// 1. Извлекаем и валидируем ID комментария
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid comment ID"})
+		c.JSON(http.StatusBadRequest, NewErrorResponse(
+			http.StatusBadRequest,
+			"Invalid comment ID",
+			err.Error(),
+		))
 		return
 	}
 
@@ -202,10 +246,17 @@ func (h *Handler) DeleteComment(c *gin.Context) {
     // Сервис проверит права доступа и выполнит мягкое удаление
 	if err := h.service.DeleteComment(uint(id), userID, userRole); err != nil {
 		status := http.StatusInternalServerError
+		message := "Failed to delete comment"
+		
 		if err == ErrUnauthorized {
 			status = http.StatusForbidden
+			message = "Unauthorized to delete this comment"
 		}
-		c.JSON(status, gin.H{"error": err.Error()})
+		c.JSON(status, NewErrorResponse(
+			status,
+			message,
+			err.Error(),
+		))
 		return
 	}
 

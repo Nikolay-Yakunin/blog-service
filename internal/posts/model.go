@@ -1,4 +1,4 @@
-package post
+package posts
 
 import (
 	"time"
@@ -48,8 +48,18 @@ type Post struct {
 type Repository interface {
 	// Create создает новый пост
 	Create(post *Post) error
+	// GetByTitle возвращает пост по его заголовку
+	GetByTitle(title string) (*Post, error)
+	// GetBySlug возвращает пост по его слагу
+	GetBySlug(slug string) (*Post, error)
+	// GetByAuthor возвращает посты автора
+	GetByAuthor(authorID uint) ([]Post, error)
+	// GetByTag возвращает посты по тегу
+	GetByTag(tag string) ([]Post, error)
 	// GetByID возвращает пост по его ID
 	GetByID(id uint) (*Post, error)
+	// GetByPublishedAt возвращает посты, опубликованные в указанный период
+	GetByPublishedAt(from, to time.Time) ([]Post, error)
 	// Update обновляет существующий пост
 	Update(post *Post) error
 	// Delete удаляет пост
@@ -64,8 +74,20 @@ type Service interface {
 	CreatePost(post *Post) error
 	// GetPost получает пост по ID
 	GetPost(id uint) (*Post, error)
+	// GetPostByTitle получает пост по его заголовку
+	GetPostByTitle(title string) (*Post, error)
+	// GetPostBySlug получает пост по его слагу
+	GetPostBySlug(slug string) (*Post, error)
+	// GetPostsByAuthor возвращает посты автора
+	GetPostsByAuthor(authorID uint) ([]Post, error)
+	// GetPostsByTag возвращает посты по тегу
+	GetPostsByTag(tag string) ([]Post, error)
+	// GetPostsByPublishedAt возвращает посты, опубликованные в указанный период
+	GetPostsByPublishedAt(from, to time.Time) ([]Post, error)
 	// UpdatePost обновляет существующий пост
 	UpdatePost(post *Post) error
+	// IncrementViewCount увеличивает счетчик просмотров поста
+	IncrementViewCount(id uint) error
 	// DeletePost удаляет пост
 	DeletePost(id uint) error
 	// ListPosts получает список постов с пагинацией

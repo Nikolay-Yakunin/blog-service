@@ -15,4 +15,8 @@ docker-up:
 clean:
 	rm -f main coverage.out
 
-.PHONY: build test docker-up clean
+.PHONY: build test docker-up clean swagger
+
+swagger:
+	swag init -g cmd/app/main.go -o docs --parseDependency --parseInternal --parseDepth 2
+	go run cmd/app/main.go

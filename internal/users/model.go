@@ -88,10 +88,10 @@ type Repository interface {
 	GetByEmail(email string) (*User, error)
 	// GetByProviderID возвращает пользователя по ID провайдера
 	GetByProviderID(provider Provider, providerID string) (*User, error)
-    // FindByRole возвращает список пользователей с указанной ролью
-    FindByRole(role Role) ([]User, error)
-    // FindActive возвращает список активных пользователей
-    FindActive() ([]User, error)
+	// FindByRole возвращает список пользователей с указанной ролью
+	FindByRole(role Role) ([]User, error)
+	// FindActive возвращает список активных пользователей
+	FindActive() ([]User, error)
 	// Update обновляет данные пользователя
 	Update(user *User) error
 	// Delete удаляет пользователя
