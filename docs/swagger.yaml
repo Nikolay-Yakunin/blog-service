@@ -1,36 +1,42 @@
 basePath: /api/v1
 definitions:
   comments.Comment:
+    description: Комментарий к посту
     properties:
       author_id:
+        example: 42
         type: integer
       content:
+        example: Это очень интересный пост!
         type: string
       created_at:
+        example: "2025-01-01T00:00:00Z"
         type: string
       deleted_at:
         type: string
       id:
+        example: 1
         type: integer
       likes:
         description: Метаданные
+        example: 15
         type: integer
-      parent:
-        allOf:
-        - $ref: '#/definitions/comments.Comment'
-        description: Древовидная структура
       parent_id:
         description: Для древовидной структуры
         type: integer
       post_id:
+        example: 5
         type: integer
-      replies:
-        items:
-          $ref: '#/definitions/comments.Comment'
-        type: array
       status:
-        $ref: '#/definitions/comments.Status'
+        allOf:
+        - $ref: '#/definitions/comments.Status'
+        enum:
+        - active
+        - deleted
+        - hidden
+        example: active
       updated_at:
+        example: "2025-01-02T00:00:00Z"
         type: string
     type: object
   comments.ErrorResponse:
@@ -46,6 +52,7 @@ definitions:
         type: string
     type: object
   comments.Status:
+    description: Статус комментария
     enum:
     - active
     - deleted
@@ -68,47 +75,69 @@ definitions:
         type: string
     type: object
   posts.Post:
+    description: Пост в блоге
     properties:
       author_id:
         description: Связи
+        example: 5
         type: integer
-      comments:
-        items:
-          $ref: '#/definitions/comments.Comment'
-        type: array
       created_at:
         description: Временные метки
+        example: "2025-01-01T00:00:00Z"
         type: string
       description:
+        example: Подробное руководство по настройке документации API с помощью Swagger
+          в Go-приложениях
         type: string
       html_content:
         description: Отрендеренный HTML
+        example: <h1>Заголовок</h1><p>HTML контент поста...</p>
         type: string
       id:
+        example: 1
         type: integer
       published_at:
+        example: "2025-01-03T12:00:00Z"
         type: string
       raw_content:
         description: Контент
+        example: |-
+          # Заголовок
+
+          Маркдаун контент поста...
         type: string
       slug:
+        example: how-to-setup-swagger-in-go
         type: string
       status:
         allOf:
         - $ref: '#/definitions/posts.Status'
         description: Метаданные
+        enum:
+        - draft
+        - published
+        - archived
+        example: published
       tags:
+        example:
+        - golang
+        - swagger
+        - api
         items:
           type: string
         type: array
       title:
+        example: Как настроить Swagger в Go
         type: string
       updated_at:
+        example: "2025-01-02T00:00:00Z"
         type: string
       view_count:
+        example: 42
         type: integer
     type: object
   posts.Status:
+    description: Статус поста
     enum:
     - draft
     - published
@@ -120,8 +149,15 @@ definitions:
     - StatusArchived
 host: localhost:8080
 info:
-  contact: {}
-  description: API сервер для блог-платформы
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: API для управления блогом с поддержкой OAuth, комментариев и поиска
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
   title: Blog Service API
   version: "1.0"
 paths:
@@ -294,8 +330,28 @@ paths:
       summary: Получить пост по slug
       tags:
       - posts
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Get status of the API
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check API health
+      tags:
+      - health
+schemes:
+- http
+- https
 securityDefinitions:
-  Bearer:
+  BearerAuth:
+    description: JWT токен в формате Bearer {token}
     in: header
     name: Authorization
     type: apiKey

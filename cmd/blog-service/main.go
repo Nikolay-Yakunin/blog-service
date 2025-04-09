@@ -1,5 +1,26 @@
 package main
 
+// @title Blog Service API
+// @version 1.0
+// @description API для управления блогом с поддержкой OAuth, комментариев и поиска
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.example.com/support
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+// @schemes http https
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT токен в формате Bearer {token}
+
 import (
 	"log"
 	"net/http"
@@ -14,7 +35,26 @@ import (
 	"gitlab.com/Nikolay-Yakunin/blog-service/internal/users"
 	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/auth/oauth"
 	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/database"
+	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/swagger"
+
+	// Импорт swagger документации
+	_ "gitlab.com/Nikolay-Yakunin/blog-service/docs"
 )
+
+// @Summary Check API health
+// @Description Get status of the API
+// @Tags health
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /health [get]
+func healthHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "ok",
+		"version": "1.0.0",
+		"env":     os.Getenv("APP_ENV"),
+	})
+}
 
 func main() {
 	// Определяем, в каком окружении запускаемся
@@ -80,14 +120,11 @@ func main() {
 	r.Use(auth.RecoveryMiddleware())
 	r.Use(auth.JWTMiddleware())
 
+	// Подключаем Swagger
+	swagger.RegisterRoutes(r)
+
 	// Базовые маршруты
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "ok",
-			"version": "1.0.0",
-			"env":     environment,
-		})
-	})
+	r.GET("/health", healthHandler)
 
 	// Создаем группу API маршрутов
 	api := r.Group("/api/v1")
@@ -107,6 +144,7 @@ func main() {
 	}
 
 	log.Printf("Starting server on port %s in %s mode", port, environment)
+	log.Printf("Swagger documentation available at http://localhost:%s/swagger/index.html", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}

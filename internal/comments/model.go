@@ -3,6 +3,7 @@ package comments
 import "time"
 
 // Status определяет текущее состояние комментария
+// @Description Статус комментария
 type Status string
 
 const (
@@ -14,24 +15,34 @@ const (
 	StatusHidden Status = "hidden"
 )
 
+// CommentRef представляет ссылку на комментарий (используется для предотвращения рекурсии)
+// @Description Ссылка на комментарий
+type CommentRef struct {
+	ID      uint   `json:"id" gorm:"primaryKey" example:"1"`
+	Content string `json:"content" example:"Это комментарий"`
+}
+
 // Comment представляет собой сущность комментария
+// @Description Комментарий к посту
 type Comment struct {
-	ID       uint   `json:"id" gorm:"primaryKey"`
-	Content  string `json:"content" gorm:"type:text;not null"`
-	PostID   uint   `json:"post_id" gorm:"index"`
-	AuthorID uint   `json:"author_id"`
+	ID       uint   `json:"id" gorm:"primaryKey" example:"1"`
+	Content  string `json:"content" gorm:"type:text;not null" example:"Это очень интересный пост!"`
+	PostID   uint   `json:"post_id" gorm:"index" example:"5"`
+	AuthorID uint   `json:"author_id" example:"42"`
 	ParentID *uint  `json:"parent_id,omitempty" gorm:"index"` // Для древовидной структуры
-	Status   Status `json:"status" gorm:"type:varchar(20);default:'active'"`
+	Status   Status `json:"status" gorm:"type:varchar(20);default:'active'" example:"active" enums:"active,deleted,hidden"`
 
 	// Древовидная структура
-	Parent  *Comment  `json:"parent,omitempty" gorm:"foreignKey:ParentID"`
-	Replies []Comment `json:"replies,omitempty" gorm:"foreignKey:ParentID"`
+	// swaggerignore: true
+	Parent *Comment `json:"parent,omitempty" gorm:"foreignKey:ParentID" swaggerignore:"true"`
+	// swaggerignore: true
+	Replies []Comment `json:"replies,omitempty" gorm:"foreignKey:ParentID" swaggerignore:"true"`
 
 	// Метаданные
-	Likes int `json:"likes" gorm:"default:0"`
+	Likes int `json:"likes" gorm:"default:0" example:"15"`
 
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	CreatedAt time.Time  `json:"created_at" example:"2025-01-01T00:00:00Z"`
+	UpdatedAt time.Time  `json:"updated_at" example:"2025-01-02T00:00:00Z"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index"`
 }
 

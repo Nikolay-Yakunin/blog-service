@@ -9,7 +9,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.example.com/support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -279,57 +288,85 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/health": {
+            "get": {
+                "description": "Get status of the API",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Check API health",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
         "comments.Comment": {
+            "description": "Комментарий к посту",
             "type": "object",
             "properties": {
                 "author_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 42
                 },
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Это очень интересный пост!"
                 },
                 "created_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-01-01T00:00:00Z"
                 },
                 "deleted_at": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "likes": {
                     "description": "Метаданные",
-                    "type": "integer"
-                },
-                "parent": {
-                    "description": "Древовидная структура",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/comments.Comment"
-                        }
-                    ]
+                    "type": "integer",
+                    "example": 15
                 },
                 "parent_id": {
                     "description": "Для древовидной структуры",
                     "type": "integer"
                 },
                 "post_id": {
-                    "type": "integer"
-                },
-                "replies": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/comments.Comment"
-                    }
+                    "type": "integer",
+                    "example": 5
                 },
                 "status": {
-                    "$ref": "#/definitions/comments.Status"
+                    "enum": [
+                        "active",
+                        "deleted",
+                        "hidden"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/comments.Status"
+                        }
+                    ],
+                    "example": "active"
                 },
                 "updated_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-01-02T00:00:00Z"
                 }
             }
         },
@@ -351,6 +388,7 @@ const docTemplate = `{
             }
         },
         "comments.Status": {
+            "description": "Статус комментария",
             "type": "string",
             "enum": [
                 "active",
@@ -381,68 +419,86 @@ const docTemplate = `{
             }
         },
         "posts.Post": {
+            "description": "Пост в блоге",
             "type": "object",
             "properties": {
                 "author_id": {
                     "description": "Связи",
-                    "type": "integer"
-                },
-                "comments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/comments.Comment"
-                    }
+                    "type": "integer",
+                    "example": 5
                 },
                 "created_at": {
                     "description": "Временные метки",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-01-01T00:00:00Z"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Подробное руководство по настройке документации API с помощью Swagger в Go-приложениях"
                 },
                 "html_content": {
                     "description": "Отрендеренный HTML",
-                    "type": "string"
+                    "type": "string",
+                    "example": "\u003ch1\u003eЗаголовок\u003c/h1\u003e\u003cp\u003eHTML контент поста...\u003c/p\u003e"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "published_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-01-03T12:00:00Z"
                 },
                 "raw_content": {
                     "description": "Контент",
-                    "type": "string"
+                    "type": "string",
+                    "example": "# Заголовок\n\nМаркдаун контент поста..."
                 },
                 "slug": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "how-to-setup-swagger-in-go"
                 },
                 "status": {
                     "description": "Метаданные",
+                    "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                    ],
                     "allOf": [
                         {
                             "$ref": "#/definitions/posts.Status"
                         }
-                    ]
+                    ],
+                    "example": "published"
                 },
                 "tags": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "golang",
+                        "swagger",
+                        "api"
+                    ]
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Как настроить Swagger в Go"
                 },
                 "updated_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-01-02T00:00:00Z"
                 },
                 "view_count": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 42
                 }
             }
         },
         "posts.Status": {
+            "description": "Статус поста",
             "type": "string",
             "enum": [
                 "draft",
@@ -457,7 +513,8 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "Bearer": {
+        "BearerAuth": {
+            "description": "JWT токен в формате Bearer {token}",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
@@ -472,9 +529,11 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
 	Title:            "Blog Service API",
-	Description:      "API сервер для блог-платформы",
+	Description:      "API для управления блогом с поддержкой OAuth, комментариев и поиска",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {
