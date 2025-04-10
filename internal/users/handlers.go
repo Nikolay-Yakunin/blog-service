@@ -258,7 +258,7 @@ func (h *Handler) UpdateUserRole(c *gin.Context) {
 		return
 	}
 
-	// Валидация роли
+	// Чот тип валидации
 	validRoles := map[Role]bool{
 		RoleUser:      true,
 		RoleVerified:  true,

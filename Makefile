@@ -1,11 +1,11 @@
 # TODO: Добавить нормальные переменные
-build:
-	go build -o main ./cmd/blog-service/
-
 # Переменные для миграций
 MIGRATE_CMD = migrate
 DATABASE_URL ?= $(shell grep DATABASE_URL .env | cut -d '=' -f2-)
 MIGRATIONS_PATH = migrations
+
+build:
+	go build -o main ./cmd/blog-service/
 
 # Установка migrate CLI (если не установлен)
 install-migrate:

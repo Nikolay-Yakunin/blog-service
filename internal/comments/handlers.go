@@ -10,11 +10,10 @@ import (
 	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/middleware"
 )
 
-
 // Handler обрабатывает HTTP-запросы для работы с комментариями
 // Содержит сервисный слой для бизнес-логики и конфигурацию приложения
 type Handler struct {
-	service Service    // Сервис для работы с бизнес-логикой комментариев
+	service Service        // Сервис для работы с бизнес-логикой комментариев
 	config  *config.Config // Конфигурация приложения, включая JWT настройки
 }
 
@@ -30,20 +29,17 @@ func NewHandler(service Service, cfg *config.Config) *Handler {
 // Register регистрирует все пути обработки HTTP-запросов
 // Группирует все эндпоинты под /api/v1 и защищает их middleware аутентификации
 func (h *Handler) Register(router *gin.Engine) {
-	// Группируем все пути под /api/v1
-	comments := router.Group("/api/v1")
-	// Защищаем все эндпоинты проверкой JWT токена
-	comments.Use(middleware.AuthMiddleware(h.config.JWT.SecretKey)) // Добавляем middleware
+	commentsAPI := router.Group("/api/v1/comments")
+	commentsAPI.Use(middleware.AuthMiddleware(h.config.JWT.SecretKey))
 	{
-		// GET /api/v1/posts/:postId/comments - получение всех комментариев поста
-        // POST /api/v1/posts/:postId/comments - создание нового комментария
-        // PUT /api/v1/comments/:id - обновление существующего комментария
-        // DELETE /api/v1/comments/:id - удаление комментария
-		// Регистрируем обработчики для различных эндпоинтов
-		comments.GET("/posts/:postId/comments", h.GetPostComments)
-		comments.POST("/posts/:postId/comments", h.CreateComment)
-		comments.PUT("/comments/:id", h.UpdateComment)
-		comments.DELETE("/comments/:id", h.DeleteComment)
+		// GET /api/v1/comments?postId=... - получение комментариев поста (через query)
+		commentsAPI.GET("", h.GetPostComments)
+		// POST /api/v1/comments - создание нового комментария (postId в теле)
+		commentsAPI.POST("", h.CreateComment)
+		// PUT /api/v1/comments/:id - обновление
+		commentsAPI.PUT("/:id", h.UpdateComment)
+		// DELETE /api/v1/comments/:id - удаление
+		commentsAPI.DELETE("/:id", h.DeleteComment)
 	}
 }
 
@@ -53,24 +49,32 @@ func (h *Handler) Register(router *gin.Engine) {
 // @Summary Получить комментарии поста
 // @Description Получает все комментарии для указанного поста
 // @Tags comments
-// @Param postId path int true "ID поста"
+// @Param postId query int true "ID поста"
 // @Success 200 {array} Comment
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 func (h *Handler) GetPostComments(c *gin.Context) {
-	// 1. Извлекаем и валидируем ID поста из URL
-	postID, err := strconv.ParseUint(c.Param("postId"), 10, 32)
+	// 1. Извлекаем и валидируем ID поста из query parameter
+	postIDStr := c.Query("postId")
+	if postIDStr == "" {
+		c.JSON(http.StatusBadRequest, NewErrorResponse(
+			http.StatusBadRequest,
+			"Missing postId query parameter",
+			"",
+		))
+		return
+	}
+	postID, err := strconv.ParseUint(postIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, NewErrorResponse(
 			http.StatusBadRequest,
-			"Invalid post ID",
+			"Invalid post ID format in query parameter",
 			err.Error(),
 		))
 		return
 	}
 
 	// 2. Получаем комментарии через сервисный слой
-    // Комментарии будут отсортированы по времени создания (сначала новые)
 	comments, err := h.service.GetPostComments(uint(postID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, NewErrorResponse(
@@ -84,6 +88,14 @@ func (h *Handler) GetPostComments(c *gin.Context) {
 	c.JSON(http.StatusOK, comments)
 }
 
+// CreateCommentRequest - отдельная структура для запроса создания комментария
+// чтобы PostID не был частью основной модели Comment в теле запроса
+type CreateCommentRequest struct {
+	Content  string `json:"content" binding:"required"`
+	PostID   uint   `json:"post_id" binding:"required"`
+	ParentID *uint  `json:"parent_id,omitempty"`
+}
+
 // CreateComment создает новый комментарий для поста
 // Поддерживает создание как корневых комментариев, так и ответов на другие комментарии
 // @Security JWT
@@ -92,15 +104,14 @@ func (h *Handler) GetPostComments(c *gin.Context) {
 // @Tags comments
 // @Accept json
 // @Produce json
-// @Param postId path int true "ID поста"
-// @Param comment body Comment true "Данные комментария"
+// @Param comment body CreateCommentRequest true "Данные комментария"
 // @Success 201 {object} Comment
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 func (h *Handler) CreateComment(c *gin.Context) {
 	// 1. Парсим данные комментария из тела запроса
-	var comment Comment
-	if err := c.BindJSON(&comment); err != nil {
+	var req CreateCommentRequest
+	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, NewErrorResponse(
 			http.StatusBadRequest,
 			"Invalid comment data",
@@ -110,24 +121,18 @@ func (h *Handler) CreateComment(c *gin.Context) {
 	}
 
 	// 2. Устанавливаем ID автора из JWT токена
-    // Это предотвращает подделку авторства комментария
-	// Получаем ID пользователя из токена
 	userID := c.GetUint("userID")
-	comment.AuthorID = userID
 
-	// 3. Устанавливаем ID поста из URL параметра
-	postID, err := strconv.ParseUint(c.Param("postId"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, NewErrorResponse(
-			http.StatusBadRequest,
-			"Invalid post ID",
-			err.Error(),
-		))
-		return
+	// 3. Создаем объект Comment для передачи в сервис
+	comment := &Comment{
+		Content:  req.Content,
+		PostID:   req.PostID,
+		AuthorID: userID,
+		ParentID: req.ParentID,
 	}
-	comment.PostID = uint(postID)
 
-	if err := h.service.CreateComment(&comment); err != nil {
+	// 4. Вызываем сервис
+	if err := h.service.CreateComment(comment); err != nil {
 		c.JSON(http.StatusInternalServerError, NewErrorResponse(
 			http.StatusInternalServerError,
 			"Failed to create comment",
@@ -181,12 +186,12 @@ func (h *Handler) UpdateComment(c *gin.Context) {
 	userRole := c.GetString("userRole")
 
 	// 4. Пытаемся обновить комментарий
-    // Сервис проверит права доступа (авторство или роль модератора)
+	// Сервис проверит права доступа (авторство или роль модератора)
 	if err := h.service.UpdateComment(&comment, userID, userRole); err != nil {
 		// 5. Определяем правильный статус ошибки
 		status := http.StatusInternalServerError
 		message := "Failed to update comment"
-		
+
 		if err == ErrUnauthorized {
 			status = http.StatusForbidden // 403 для ошибок доступа
 			message = "Unauthorized to modify this comment"
@@ -200,7 +205,7 @@ func (h *Handler) UpdateComment(c *gin.Context) {
 	}
 
 	// 6. Получаем обновленный комментарий для ответа
-    // Это гарантирует, что клиент получит актуальные данные
+	// Это гарантирует, что клиент получит актуальные данные
 	// Получаем обновленный комментарий из базы
 	updatedComment, err := h.service.GetComment(comment.ID)
 	if err != nil {
@@ -243,11 +248,11 @@ func (h *Handler) DeleteComment(c *gin.Context) {
 	userRole := c.GetString("userRole")
 
 	// 3. Пытаемся удалить комментарий
-    // Сервис проверит права доступа и выполнит мягкое удаление
+	// Сервис проверит права доступа и выполнит мягкое удаление
 	if err := h.service.DeleteComment(uint(id), userID, userRole); err != nil {
 		status := http.StatusInternalServerError
 		message := "Failed to delete comment"
-		
+
 		if err == ErrUnauthorized {
 			status = http.StatusForbidden
 			message = "Unauthorized to delete this comment"

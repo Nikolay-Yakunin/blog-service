@@ -63,8 +63,8 @@ type User struct {
 	ProviderID string   `json:"provider_id" gorm:"size:255;not null"` // ID пользователя у провайдера
 
 	// Данные профиля
-	Avatar string `json:"avatar" gorm:"size:255"` // URL аватара пользователя
-	Bio    string `json:"bio" gorm:"type:text"`   // Описание профиля
+	Avatar string `json:"avatar" gorm:"size:255"` 					  // URL аватара пользователя
+	Bio    string `json:"bio" gorm:"type:text"`   					  // Описание профиля
 
 	// Системные настройки
 	Role     Role `json:"role" gorm:"type:varchar(20);default:'user'"` // Роль пользователя

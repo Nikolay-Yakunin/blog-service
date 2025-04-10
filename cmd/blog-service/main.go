@@ -31,10 +31,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"gitlab.com/Nikolay-Yakunin/blog-service/config"
 	"gitlab.com/Nikolay-Yakunin/blog-service/internal/auth"
+	"gitlab.com/Nikolay-Yakunin/blog-service/internal/comments"
+	"gitlab.com/Nikolay-Yakunin/blog-service/internal/posts"
 	"gitlab.com/Nikolay-Yakunin/blog-service/internal/users"
 	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/auth/oauth"
-	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/database"
 	"gitlab.com/Nikolay-Yakunin/blog-service/pkg/swagger"
 
 	// Импорт swagger документации
@@ -74,51 +76,57 @@ func main() {
 		}
 	}
 
+	// Загружаем конфигурацию из файла и переменных окружения
+	cfg, err := config.LoadConfig(".")
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
 	// Подключаемся к базе данных
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		log.Fatal("DATABASE_URL environment variable not set")
 	}
-
 	log.Printf("Connecting to database with DSN: %s", dsn)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+	db, dbErr := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if dbErr != nil {
+		log.Fatal("Failed to connect to database:", dbErr)
 	}
 	log.Println("Successfully connected to database")
 
-	// Инициализируем соединение с БД
-	database.InitDB(db)
+	// Инициализируем соединение с БД (если пакет database это делает)
+	// database.InitDB(db) // Закомментировано, т.к. db передается напрямую
 
-	// Миграция моделей
-	log.Println("Running database migrations...")
-	if err := db.AutoMigrate(&users.User{}, &auth.RevokedToken{}); err != nil {
+	// Миграции - используем make migrate-up
+	/* log.Println("Running database migrations...")
+	if err := db.AutoMigrate(&users.User{}, &auth.RevokedToken{}, &posts.Post{}, &comments.Comment{}); err != nil { // Добавлены Post и Comment на всякий случай, но строка закомментирована
 		log.Fatal("Failed to migrate database:", err)
 	}
-	log.Println("Database migrations completed successfully")
+	log.Println("Database migrations completed successfully") */
 
 	// Инициализируем репозитории и сервисы
 	userRepo := users.NewUserRepository(db)
 	userService := users.NewUserService(userRepo)
+	postRepo := posts.NewPostRepository(db)
+	postService := posts.NewPostService(postRepo)
+	commentRepo := comments.NewCommentRepository(db)
+	commentService := comments.NewCommentService(commentRepo)
 
-	// Инициализируем OAuth конфигурацию
+	// Инициализируем OAuth конфигурацию (возвращаем старый способ)
 	oauthConfig := oauth.NewConfig()
 
 	// Инициализируем черный список токенов
 	auth.InitTokenBlacklist(db)
 
-	// Настраиваем режим Gin в зависимости от окружения
-	if environment == "production" {
+	// Настраиваем режим Gin
+	if cfg.App.Name == "production" { // Сверяемся с полем в конфиге
 		gin.SetMode(gin.ReleaseMode)
 	}
-
-	// Создаем роутер
 	r := gin.Default()
 
-	// Подключаем middleware
-	r.Use(auth.LoggerMiddleware())
-	r.Use(auth.RecoveryMiddleware())
-	r.Use(auth.JWTMiddleware())
+	// Подключаем стандартные middleware
+	r.Use(auth.LoggerMiddleware())   // Используем из internal/auth
+	r.Use(auth.RecoveryMiddleware()) // Используем из internal/auth
 
 	// Подключаем Swagger
 	swagger.RegisterRoutes(r)
@@ -126,24 +134,37 @@ func main() {
 	// Базовые маршруты
 	r.GET("/health", healthHandler)
 
-	// Создаем группу API маршрутов
-	api := r.Group("/api/v1")
+	// Создаем группу API v1
+	apiV1 := r.Group("/api/v1")
 
-	// Регистрируем обработчики аутентификации
+	// Регистрируем обработчики, передавая группу apiV1
+
+	// Auth
 	authHandler := auth.NewHandler(oauthConfig, userService)
-	authHandler.RegisterRoutes(api)
+	authHandler.RegisterRoutes(apiV1)
 
-	// Регистрируем обработчики пользователей
+	// Users
 	userHandler := users.NewHandler(userService)
-	userHandler.RegisterRoutes(api)
+	userHandler.RegisterRoutes(apiV1) // Используем единый метод
+
+	// Posts
+	postHandler := posts.NewHandler(postService, cfg) // Передаем cfg
+	postHandler.Register(r)                           // Используем существующий метод Register(*gin.Engine)
+
+	// Comments
+	commentHandler := comments.NewHandler(commentService, cfg) // Передаем cfg
+	commentHandler.Register(r)                                 // Используем существующий метод Register(*gin.Engine)
 
 	// Запускаем сервер
-	port := os.Getenv("PORT")
+	port := cfg.Server.Port
+	if port == "" {
+		port = os.Getenv("PORT")
+	}
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Starting server on port %s in %s mode", port, environment)
+	log.Printf("Starting server on port %s in %s mode", port, cfg.App.Name)
 	log.Printf("Swagger documentation available at http://localhost:%s/swagger/index.html", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
