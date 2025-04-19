@@ -30,7 +30,7 @@ func NewHandler(service Service, cfg *config.Config) *Handler {
 // Группирует все эндпоинты под /api/v1 и защищает их middleware аутентификации
 func (h *Handler) Register(router *gin.Engine) {
 	commentsAPI := router.Group("/api/v1/comments")
-	commentsAPI.Use(middleware.AuthMiddleware(h.config.JWT.SecretKey))
+	commentsAPI.Use(middleware.AuthMiddleware())
 	{
 		// GET /api/v1/comments?postId=... - получение комментариев поста (через query)
 		commentsAPI.GET("", h.GetPostComments)

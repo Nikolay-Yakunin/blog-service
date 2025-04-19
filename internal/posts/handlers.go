@@ -1,9 +1,9 @@
 package posts
 
 import (
-	"time"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/Nikolay-Yakunin/blog-service/config"
@@ -34,7 +34,7 @@ func (h *Handler) Register(router *gin.Engine) {
 		posts.GET("/slug/:slug", h.GetPostBySlug)
 
 		// Защищенные эндпоинты
-		authorized := posts.Use(middleware.AuthMiddleware(h.config.JWT.SecretKey))
+		authorized := posts.Use(middleware.AuthMiddleware())
 		{
 			authorized.POST("", h.CreatePost)
 			authorized.PUT("/:id", h.UpdatePost)
@@ -90,12 +90,12 @@ func (h *Handler) GetPost(c *gin.Context) {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := "Failed to fetch post"
-		
+
 		if err == ErrPostNotFound {
 			status = http.StatusNotFound
 			message = "Post not found"
 		}
-		
+
 		c.JSON(status, NewErrorResponse(
 			status,
 			message,
@@ -192,12 +192,12 @@ func (h *Handler) UpdatePost(c *gin.Context) {
 	if err := h.service.UpdatePost(&post); err != nil {
 		status := http.StatusInternalServerError
 		message := "Failed to update post"
-		
+
 		if err == ErrPostNotFound {
 			status = http.StatusNotFound
 			message = "Post not found"
 		}
-		
+
 		c.JSON(status, NewErrorResponse(
 			status,
 			message,
@@ -232,12 +232,12 @@ func (h *Handler) DeletePost(c *gin.Context) {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := "Failed to fetch post"
-		
+
 		if err == ErrPostNotFound {
 			status = http.StatusNotFound
 			message = "Post not found"
 		}
-		
+
 		c.JSON(status, NewErrorResponse(
 			status,
 			message,
