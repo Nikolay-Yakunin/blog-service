@@ -4,38 +4,38 @@ package users
 
 import (
 	"errors"
-	"time"
-	"strings"
 	"fmt"
+	"strings"
+	"time"
 )
 
 // UserService реализует бизнес-логику работы с пользователями
 type UserService struct {
-    repo Repository
+	repo Repository
 }
 
 // NewUserService создает новый экземпляр сервиса пользователей
 func NewUserService(repo Repository) *UserService {
-    return &UserService{
-        repo: repo,
-    }
+	return &UserService{
+		repo: repo,
+	}
 }
 
 // ValidateEmail проверяет корректность email адреса
 func (s *UserService) validateEmail(email string) error {
-    // Простая проверка на наличие @ и домена
-    if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
-        return errors.New("invalid email format")
-    }
-    // Проверка на уникальность
-    existing, err := s.repo.GetByEmail(email)
-    if err != nil {
-        return err
-    }
-    if existing != nil {
-        return errors.New("email already exists")
-    }
-    return nil
+	// Простая проверка на наличие @ и домена
+	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
+		return errors.New("invalid email format")
+	}
+	// Проверка на уникальность
+	existing, err := s.repo.GetByEmail(email)
+	if err != nil {
+		return err
+	}
+	if existing != nil {
+		return errors.New("email already exists")
+	}
+	return nil
 }
 
 // Register регистрирует нового пользователя на основе данных OAuth провайдера
@@ -80,18 +80,31 @@ func (s *UserService) Register(provider Provider, providerData map[string]interf
 		avatarURL = "" // Используем пустую строку, если аватар отсутствует
 	}
 
-	// Добавляем валидацию email
-    if err := s.validateEmail(email); err != nil {
-        return nil, fmt.Errorf("email validation failed: %w", err)
-    }
-
-	// Ищем существующего пользователя
+	// Ищем существующего пользователя по provider+provider_id
 	existingUser, err := s.repo.GetByProviderID(provider, providerID)
 	if err != nil {
 		return nil, err
 	}
 	if existingUser != nil {
 		return existingUser, nil
+	}
+
+	// Ищем существующего пользователя по email
+	existingByEmail, err := s.repo.GetByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	if existingByEmail != nil {
+		// (опционально) можно обновить provider/provider_id, если хотите поддерживать мульти-провайдерность
+		// existingByEmail.Provider = provider
+		// existingByEmail.ProviderID = providerID
+		// _ = s.repo.Update(existingByEmail)
+		return existingByEmail, nil
+	}
+
+	// Добавляем валидацию email только если создаём нового пользователя
+	if err := s.validateEmail(email); err != nil {
+		return nil, fmt.Errorf("email validation failed: %w", err)
 	}
 
 	// Создаем нового пользователя
@@ -180,10 +193,10 @@ func (s *UserService) UpdateLastLogin(id uint) error {
 
 // GetUsersByRole возвращает список пользователей с указанной ролью
 func (s *UserService) GetUsersByRole(role Role) ([]User, error) {
-    return s.repo.FindByRole(role)
+	return s.repo.FindByRole(role)
 }
 
 // GetActiveUsers возвращает список активных пользователей
 func (s *UserService) GetActiveUsers() ([]User, error) {
-    return s.repo.FindActive()
+	return s.repo.FindActive()
 }
