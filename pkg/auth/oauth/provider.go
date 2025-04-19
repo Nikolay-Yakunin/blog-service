@@ -150,7 +150,6 @@ func TestFetchGoogleUser(t *testing.T) {
 	client := ts.Client()
 
 	// Переопределяем endpoint для теста
-	oldEndpoint := "https://www.googleapis.com/oauth2/v2/userinfo"
 	getUserData := func(client *http.Client) (*UserData, error) {
 		resp, err := client.Get(ts.URL)
 		if err != nil {
