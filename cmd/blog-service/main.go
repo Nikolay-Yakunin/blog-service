@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -123,6 +124,15 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.Default()
+
+	// Подключаем CORS middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"https://nikolay-yakunin.github.io"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	// Подключаем стандартные middleware
 	r.Use(auth.LoggerMiddleware())   // Используем из internal/auth
