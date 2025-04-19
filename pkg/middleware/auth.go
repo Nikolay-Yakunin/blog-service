@@ -27,7 +27,11 @@ func AuthMiddleware(secretKey string) gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			detail := ""
+			if err != nil {
+				detail = err.Error()
+			}
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token", "details": detail})
 			c.Abort()
 			return
 		}
