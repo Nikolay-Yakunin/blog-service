@@ -17,15 +17,22 @@ func JWTMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Получаем заголовок Authorization
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.Next() // Продолжаем цепочку middleware без добавления данных
-			return
+		var tokenStr string
+
+		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+			tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
+		} else {
+			// Пробуем взять токен из cookie
+			cookie, err := c.Cookie("token")
+			if err == nil {
+				tokenStr = cookie
+			}
 		}
 
-		// Извлекаем токен из заголовка
-		tokenStr := authHeader
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenStr == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
+			c.Abort()
+			return
 		}
 
 		// Проверяем токен
