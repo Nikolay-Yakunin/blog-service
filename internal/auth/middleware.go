@@ -30,6 +30,7 @@ func JWTMiddleware() gin.HandlerFunc {
 		}
 
 		if tokenStr == "" {
+			fmt.Println("JWTMiddleware: токен не найден ни в заголовке, ни в cookie")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
 			c.Abort()
 			return
@@ -38,6 +39,7 @@ func JWTMiddleware() gin.HandlerFunc {
 		// Проверяем токен
 		claims, err := jwt.ValidateToken(tokenStr)
 		if err != nil {
+			fmt.Println("JWTMiddleware: невалидный токен:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительный токен"})
 			c.Abort()
 			return
@@ -45,10 +47,13 @@ func JWTMiddleware() gin.HandlerFunc {
 
 		// Проверяем, не отозван ли токен
 		if blacklist != nil && blacklist.IsRevoked(claims.ID) {
+			fmt.Println("JWTMiddleware: токен отозван (ID:", claims.ID, ")")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отозван"})
 			c.Abort()
 			return
 		}
+
+		fmt.Printf("JWTMiddleware: user_id=%v (type %T), role=%v\n", claims.UserID, claims.UserID, claims.Role)
 
 		// Добавляем информацию о пользователе в контекст
 		c.Set("user_id", claims.UserID)
