@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/Nikolay-Yakunin/blog-service/internal/users"
@@ -48,54 +49,58 @@ func (h *Handler) Login(c *gin.Context) {
 // Убрал редирект ПОЧЕМУ НЕ ПУШИТСЯ 
 // Callback обрабатывает ответ от OAuth провайдера
 func (h *Handler) Callback(c *gin.Context) {
-	provider := c.Param("provider")
-	code := c.Query("code")
+    provider := c.Param("provider")
+    code := c.Query("code")
 
-	userData, err := h.oauth.GetUserData(c.Request.Context(), provider, code)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    userData, err := h.oauth.GetUserData(c.Request.Context(), provider, code)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "OAuth error: %s", err.Error())
+        return
+    }
 
-	user, err := h.users.Register(users.Provider(provider), map[string]interface{}{
-		"id":         userData.ID,
-		"login":      userData.Login,
-		"email":      userData.Email,
-		"avatar_url": userData.AvatarURL,
-	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    user, err := h.users.Register(users.Provider(provider), map[string]interface{}{
+        "id":         userData.ID,
+        "login":      userData.Login,
+        "email":      userData.Email,
+        "avatar_url": userData.AvatarURL,
+    })
+    if err != nil {
+        c.String(http.StatusInternalServerError, "User error: %s", err.Error())
+        return
+    }
 
-	// Генерируем JWT токен
-	tokenUser := &jwt.TokenUser{
-		ID:   user.ID,
-		Role: user.Role,
-	}
-	token, err := jwt.GenerateToken(tokenUser)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка генерации токена"})
-		return
-	}
+    tokenUser := &jwt.TokenUser{
+        ID:   user.ID,
+        Role: user.Role,
+    }
+    token, err := jwt.GenerateToken(tokenUser)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Token error")
+        return
+    }
 
-	// Устанавливаем cookie с токеном
-	c.SetCookie(
-		"token", token,
-		60*60*24, // 1 день (в секундах)
-		"/",      // Path
-		"",       // Domain (по умолчанию текущий)
-		true,     // Secure
-		true,     // HttpOnly
-	)
-	// Принудительно выставляем SameSite=None
-	c.Writer.Header().Add("Set-Cookie", "token="+token+"; Path=/; HttpOnly; Secure; SameSite=None")
+    // Формируем Set-Cookie вручную!
+    cookie := fmt.Sprintf(
+        "token=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None",
+        token, 60*60*24,
+    )
+    c.Writer.Header().Add("Set-Cookie", cookie)
 
-	// Добавляем CORS-заголовки (на всякий случай)
-	c.Writer.Header().Set("Access-Control-Allow-Origin", "https://nikolay-yakunin.github.io")
-	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+    // CORS
+    c.Writer.Header().Set("Access-Control-Allow-Origin", "https://nikolay-yakunin.github.io")
+    c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+    // Возвращаем простую HTML-страницу для popup
+    c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(`
+        <html>
+          <body>
+            <script>
+              window.close();
+            </script>
+            <p>Авторизация успешна, окно можно закрыть</p>
+          </body>
+        </html>
+    `))
 }
 
 // Logout обрабатывает выход пользователя из системы
