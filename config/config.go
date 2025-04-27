@@ -51,7 +51,7 @@ func LoadConfig(path string) (*Config, error) {
     }
 
     // Явно указываем, что JWT_SECRET должен быть взят из переменных окружения
-    if err := viper.BindEnv("jwt.secret_key", "JWT_SECRET"); err != nil {
+    if err := viper.BindEnv("jwt.secret_key", "JWT_SECRET_KEY"); err != nil {
         return nil, err
     }
 

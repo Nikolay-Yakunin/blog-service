@@ -7,7 +7,7 @@ server:
   host: "localhost"
 
 jwt:
-  secret_key: ${JWT_SECRET}
+  secret_key: ${JWT_SECRET_KEY}
   expires_in: "24h"
 
 database:
