@@ -45,6 +45,7 @@ func (h *Handler) Login(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, authURL)
 }
 
+// Убрал редирект
 // Callback обрабатывает ответ от OAuth провайдера
 func (h *Handler) Callback(c *gin.Context) {
 	provider := c.Param("provider")
