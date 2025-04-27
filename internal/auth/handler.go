@@ -1,9 +1,7 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -80,36 +78,23 @@ func (h *Handler) Callback(c *gin.Context) {
 		return
 	}
 
-	params := url.Values{}
-	params.Add("token", token)
-	params.Add("id", fmt.Sprintf("%v", user.ID))
-	params.Add("username", user.Username)
-	params.Add("email", user.Email)
-	params.Add("provider", string(user.Provider))
-	params.Add("provider_id", user.ProviderID)
-	params.Add("avatar", user.Avatar)
-	params.Add("bio", user.Bio)
-	params.Add("role", string(user.Role))
-	if user.IsActive {
-		params.Add("is_active", "true")
-	} else {
-		params.Add("is_active", "false")
-	}
-	if user.LastLogin != nil {
-		params.Add("last_login", user.LastLogin.Format(time.RFC3339))
-	}
-	if !user.CreatedAt.IsZero() {
-		params.Add("created_at", user.CreatedAt.Format(time.RFC3339))
-	}
-	if !user.UpdatedAt.IsZero() {
-		params.Add("updated_at", user.UpdatedAt.Format(time.RFC3339))
-	}
-	if user.DeletedAt != nil {
-		params.Add("deleted_at", user.DeletedAt.Format(time.RFC3339))
-	}
+	// Устанавливаем cookie с токеном
+	c.SetCookie(
+		"token", token,
+		60*60*24, // 1 день (в секундах)
+		"/",      // Path
+		"",       // Domain (по умолчанию текущий)
+		true,     // Secure
+		true,     // HttpOnly
+	)
+	// Принудительно выставляем SameSite=None
+	c.Writer.Header().Add("Set-Cookie", "token="+token+"; Path=/; HttpOnly; Secure; SameSite=None")
 
-	redirectUrl := "https://nikolay-yakunin.github.io/blog-client/?" + params.Encode()
-	c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
+	// Добавляем CORS-заголовки (на всякий случай)
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "https://nikolay-yakunin.github.io")
+	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
 // Logout обрабатывает выход пользователя из системы
