@@ -2,6 +2,8 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+# Проект закрыт, из за неправильной концептуализиции на этапе пред подготовки (в будущем будет переписан)
+
 # gitlab.com/Nikolay-Yakunin/blog-service/
 
 ## Цель проекта
